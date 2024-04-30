@@ -9,11 +9,21 @@ public class JwtResponse {
   private String type = "Bearer";
   private String username;
   private Set<Roles> roles;
+  private double usdt;
 
-  public JwtResponse(String accessToken, String username, Set<Roles> roles) {
+  public JwtResponse(String accessToken, String username, Set<Roles> roles, double usdt) {
     this.token = accessToken;
     this.username = username;
     this.roles = roles;
+    this.usdt = usdt;
+  }
+
+  public double getUsdt() {
+    return usdt;
+  }
+
+  public void setUsdt(double usdt) {
+    this.usdt = usdt;
   }
 
   public String getToken() {

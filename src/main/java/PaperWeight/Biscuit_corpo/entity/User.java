@@ -45,7 +45,7 @@ public class User {
         this.username = username;
         this.email = email;
         this.password = password;
-        usdt = 100;
+        usdt = 2000;
     }
 
     public double getUsdt() {

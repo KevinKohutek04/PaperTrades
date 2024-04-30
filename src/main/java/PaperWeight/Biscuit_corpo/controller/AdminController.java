@@ -35,8 +35,6 @@ public class AdminController {
         }
         return ResponseEntity.unprocessableEntity().body(new APIReturn("56","ERROR","INVAID INPUT"));
     }
-
-    //@RequestParam String name, @RequestParam int active, , @RequestParam int userType
     @PutMapping(value = "/UpdateUsers", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<APIReturn> upUser (@RequestParam String username, @RequestParam int nrole) {
 
@@ -50,9 +48,6 @@ public class AdminController {
                 crt = p;
             }
         }
-
-       // @RequestParam Set<Roles> roles
-       // crt.setRoles(roles);
         Set<Roles> roles = new HashSet<>();
         roles.add(roleRepository.findByName(ERole.ROLE_USER).orElseThrow(() -> new RuntimeException("Error: Role is not found")));
         switch (nrole) {
@@ -69,15 +64,4 @@ public class AdminController {
         urepo.save(crt);
         return ResponseEntity.unprocessableEntity().body(new APIReturn("00","WORKED","COMPLETED"));
     }
-}/*roleRepository.findByName(ERole.ROLE_USER)
-              .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-@Id
-    private String username;
-    private String name;
-    @JsonIgnore
-    private String password;
-    private int active;
-    @Transient
-    private Set<Roles> roles = new HashSet<>();
-    private int userType;
-*/
+}

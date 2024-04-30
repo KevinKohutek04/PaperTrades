@@ -1,21 +1,26 @@
 package PaperWeight.Biscuit_corpo.controller;
 
 import PaperWeight.Biscuit_corpo.APIReturn;
+import PaperWeight.Biscuit_corpo.entity.ClosedPos;
 import PaperWeight.Biscuit_corpo.entity.Pos;
 import PaperWeight.Biscuit_corpo.entity.Song;
 import PaperWeight.Biscuit_corpo.entity.User;
+import PaperWeight.Biscuit_corpo.repository.ClosedPosRepository;
 import PaperWeight.Biscuit_corpo.repository.PosRepository;
 import PaperWeight.Biscuit_corpo.repository.RoleRepository;
 import PaperWeight.Biscuit_corpo.repository.UserRepository;
+import PaperWeight.Biscuit_corpo.response.JwtResponse;
+import PaperWeight.Biscuit_corpo.service.TokenDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/coin/")
@@ -26,122 +31,94 @@ public class CoinController {
     RoleRepository roleRepository;
     @Autowired
     PosRepository posRepository;
-    @GetMapping("/myPos")
-    public List<Pos> getPos (long user) {//u need user id
-        return posRepository.findByUser(user);
+    @Autowired
+    ClosedPosRepository cposRepository;
+    @CrossOrigin(origins = "http://localhost:8888")
+    @GetMapping("/info")
+    public ResponseEntity<?> money (@RequestParam String username) {
+        Optional<User> tempUser = userRepository.findByUsername(username);
+        User cleint = tempUser.get();
+        return ResponseEntity.ok().body(cleint.getUsdt());
     }
-    @PutMapping("/buyCoin")
-    public ResponseEntity<APIReturn> buyCoin (@RequestParam double cValue, @RequestParam String username, @RequestParam double usdt, @RequestParam int type) {
+    @CrossOrigin(origins = "http://localhost:8888")
+    @GetMapping("/leaders")
+    public ResponseEntity<?> leaders () {
+        List<User> users = userRepository.findAll();
+        users.sort((user1, user2) -> Double.compare(user2.getUsdt(), user1.getUsdt()));
+        List<Map<String, Object>> top10Users = users.stream()
+                .limit(10)
+                .map(user -> {
+                    Map<String, Object> userMap = new HashMap<>();
+                    userMap.put("username", user.getUsername());
+                    userMap.put("usdt", user.getUsdt());
+                    return userMap;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok().body(top10Users);
+
+    }
+    @CrossOrigin(origins = "http://localhost:8888")
+    @GetMapping("/type")
+    public double typeo (@RequestParam int type) {
+        return TokenDataService.getCryptoData(type);
+    }
+    @CrossOrigin(origins = "http://localhost:8888")
+    @GetMapping("/viewOpenPos")
+    public ResponseEntity<?> veiwOpenPos (@RequestParam String username) {
+        Optional<User> user = userRepository.findByUsername(username);
+        List<Pos> pos = posRepository.findByUser(user.get().getId());
+
+        return ResponseEntity.ok().body(Arrays.asList(pos));
+    }
+    @CrossOrigin(origins = "http://localhost:8888")
+    @GetMapping("/viewPos")
+    public ResponseEntity<?> veiwPos (@RequestParam String username) {
+        Optional<User> user = userRepository.findByUsername(username);
+        List<ClosedPos> Cpos = cposRepository.findByUser(user.get().getId());
+
+        return ResponseEntity.ok().body(Arrays.asList(Cpos));
+    }
+    @CrossOrigin(origins = "http://localhost:8888")
+    @PostMapping("/openPos")
+    public ResponseEntity<APIReturn> openPos (@RequestParam double usdt,
+                                                  @RequestParam String user, @RequestParam int type,
+                                                  @RequestParam double stopLoss, @RequestParam double takeProfit,
+                                                  @RequestParam boolean shortLong, @RequestParam int lev) {
         try {
-            if(usdt<1)
-                return ResponseEntity.status(400).body(new APIReturn("400","ERROR","BAD REQUEST, USDT TO LOW"));
-            User user = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User couldnt be found using this username"));
-             long id = user.getId();
-            LocalDate currentDate = LocalDate.now();
-            String fDate = currentDate.format(DateTimeFormatter.ofPattern("MMddyyyy"));
-            Pos pos = new Pos(usdt, cValue, Integer.parseInt(fDate) , id, type); //double usdt, double openPos, double open, long user, int type  System
+            Optional<User> tempUser = userRepository.findByUsername(user);
+            //User cleint = userRepository.findByUsername(user).orElseThrow(() -> new UsernameNotFoundException("User couldnt be found using this username"));
+           User cleint = tempUser.get();
+           double openPos = TokenDataService.getCryptoData(type);
+            if(cleint.getUsdt() < usdt) {
+                return ResponseEntity.status(401).body(new APIReturn("556", "ERROR", "BAD MONEY"));
+            }
+            cleint.setUsdt(cleint.getUsdt() - usdt);
+            Pos pos = new Pos(usdt, openPos, cleint.getId(), type, stopLoss, takeProfit, shortLong, lev);
+            userRepository.save(cleint);
             posRepository.save(pos);
-            //no money
-            if(user.getUsdt() < usdt)
-                return ResponseEntity.status(401).body(new APIReturn("400","ERROR","NO MONEY"));
-            user.setUsdt(user.getUsdt() - usdt);
-            userRepository.save(user);
-            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","BOUGHT: " + usdt / cValue + " WORTH. ID: " + pos.getId()));
+            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","SAVED"));
         } catch (Exception e) {
-            return ResponseEntity.status(401).body(new APIReturn("556","ERROR","REQUEST FAILED"));
+            return ResponseEntity.status(401).body(new APIReturn("556", "ERROR", "REQUEST FAILED"));
         }
     }
-    /*
-            try {
-                posRepository.save(pos);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }*/
-    @PutMapping("/sellCoin")
-    public ResponseEntity<APIReturn> sellCoin (@RequestParam double cValue, @RequestParam double usdt, @RequestParam int pId) {
+    @CrossOrigin(origins = "http://localhost:8888")
+    @PostMapping("/closePos")
+    public ResponseEntity<APIReturn> closePos (@RequestParam String username, @RequestParam int id) {
         try {
-            if(usdt<1)
-                return ResponseEntity.status(400).body(new APIReturn("400","ERROR","BAD REQUEST, USDT TO LOW"));
-            LocalDate currentDate = LocalDate.now();
-            String fDate = currentDate.format(DateTimeFormatter.ofPattern("MMddyyyy"));
-
-            Optional<Pos> array = posRepository.findById(pId);
-            Pos pos = array.get();
-            Optional<User> userA = userRepository.findById(pos.getUser());
-            User user = userA.get();
-            pos.setClose(Integer.parseInt(fDate));
-            pos.setClosePos(cValue);
-            posRepository.save(pos);
-            //important Math.floor(user.getUsdt() + (pos.getUsdt() / pos.getOpenPos() * cValue) * 100) / 100
-            user.setUsdt(Math.floor(user.getUsdt() + (pos.getUsdt() / pos.getOpenPos() * cValue) * 100) / 100 );
+            Optional<Pos> temp = posRepository.findById(id);
+            Optional<User> temp2 = userRepository.findByUsername(username);
+            Pos pos = temp.get();
+            User user = temp2.get();
+            user.setUsdt(user.getUsdt() + pos.calUsdt() + pos.getUsdt());
+            ClosedPos cPos = new ClosedPos(pos.getShortLong(),pos.getOpen(),pos.getOpenPos(), TokenDataService.getCryptoData(pos.getType()),
+                    pos.getUsdt(), pos.getUser(), pos.getType(), pos.getLev(), pos.getStopLoss(), pos.getTakeProfit());
+            cposRepository.save(cPos);
             userRepository.save(user);
-            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","SOLD: " + usdt / cValue + " WORTH"));
+            posRepository.delete(pos);
+            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","SAVED"));
         } catch (Exception e) {
-            return ResponseEntity.status(401).body(new APIReturn("556","ERROR","REQUEST FAILED"));
+            return ResponseEntity.status(401).body(new APIReturn("556", "ERROR", "REQUEST FAILED"));
         }
     }
 }
-/*
-* @PutMapping("/buyCoin")
-    public ResponseEntity<APIReturn> buyCoin (@RequestParam double cValue, @RequestParam String username, @RequestParam double usdt, @RequestParam int type) {
-        try {
-            if(usdt<1)
-                return ResponseEntity.status(400).body(new APIReturn("400","ERROR","BAD REQUEST USDT TO LOW"));
-            User user = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User couldnt be found using this username"));
-            double amount = usdt / cValue;
-            switch (type) {//1btc 2eth 3sol
-                case 1:
-                    user.setBtc(user.getBtc() + amount);
-                    break;
-                case 2:
-                    user.setEth(user.getEth() + amount);
-                    break;
-                case 3:
-                    user.setSol(user.getSol() + amount);
-                    break;
-            }
-            user.setUsdt(user.getUsdt() - usdt);
-            userRepository.save(user);
-            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","BOUGHT: " + amount + " WORTH"));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(new APIReturn("556","ERROR","REQUEST FAILED"));
-        }
-    }
-    @PutMapping("/sellCoin")
-    public ResponseEntity<APIReturn> sellCoin (@RequestParam double cValue, @RequestParam String username, @RequestParam double cAmount, @RequestParam int type) {
-        try {
-            User user = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User couldnt be found using this username"));
-            switch (type) {//1btc 2eth 3sol
-                case 1:
-                    user.setBtc(user.getBtc() - cAmount);
-                    break;
-                case 2:
-                    user.setEth(user.getEth() - cAmount);
-                    break;
-                case 3:
-                    user.setSol(user.getSol() - cAmount);
-                    break;
-            }
-            user.setUsdt(user.getUsdt() + cValue * cAmount);
-            userRepository.save(user);
-            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","SOLD: " + cAmount + " WORTH"));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(new APIReturn("556","ERROR","REQUEST FAILED"));
-        }
-    }
-    @PutMapping("/giveCoin")
-    public ResponseEntity<APIReturn> give (@RequestParam String gUsername, @RequestParam String rUsername, @RequestParam double total) {
-        try {
-            User gUser = userRepository.findByUsername(gUsername).orElseThrow(() -> new UsernameNotFoundException("User couldnt be found using this gUsername"));
-            User rUser = userRepository.findByUsername(rUsername).orElseThrow(() -> new UsernameNotFoundException("User couldnt be found using this rUsername"));
-            gUser.setUsdt(gUser.getUsdt() - total);
-            rUser.setUsdt(rUser.getUsdt() + total);
-
-            userRepository.save(gUser);
-            userRepository.save(rUser);
-            return ResponseEntity.status(201).body(new APIReturn("0","SAVED","GAVE: " + total + " TO: " + rUsername + " FROM: " + gUsername));
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(new APIReturn("556","ERROR","REQUEST FAILED"));
-        }
-    }
-* */

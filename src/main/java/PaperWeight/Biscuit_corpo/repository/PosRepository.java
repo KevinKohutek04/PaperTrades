@@ -16,4 +16,5 @@ public interface PosRepository extends JpaRepository<Pos, Integer> {
     @Override
     Optional<Pos> findById(Integer id);
     List<Pos> findByUser(Long user);
+    List<Pos> findByType(int type);
 }
