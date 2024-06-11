@@ -1,24 +1,11 @@
 # Paper Traders
-
-This project was made to mimic modern crypto trading platforms but without using money so you could bet on live crytpo currecny and not spend a dollar
-
+This project was created to mimic modern crypto trading platforms without using money. You can bet on live cryptocurrency without spending a dollar.
 
 # The Logic
-
-Once you are logged in you can open a position either long or short the currnt selected coin. This position will create a elemnt in my sql server that my
-spring boot will manage. if the positon's stoploss or takeprofit or etc is met, the app will close that position and move it to a closed position catagory.
-uopn request you can see all of you live positions and closed positions. 
-
+Once you are logged in, you can open a position, either long or short, on the currently selected coin. This position will create an element in my SQL server that my Spring Boot application will manage. If the position's stop loss or take profit is met, the app will close that position and move it to a closed position table. Upon request, you can see all of your live positions and closed positions.
 
 # Users
+For user security, I implemented JWT tokens as the way to authenticate requests. Although this is somewhat overkill for the scale of the project, I did it as a challenge to make it work within the constraints of my system. I also encrypted the passwords on the SQL server to ensure they could never be stolen, not that it's a valuable target. However, after completing the full security of the project, I personally learned far more about how internet security works than I would have learned from reading 10+ books on the topic.
 
-for the users and secruity i implemnted jwt tockens as the way to authintace request alltho this is kinda over kill for the scale of the project i did it
-as a challange to make it work with the contrants of my system. i also encrypted the pass words on the sql server to enshure it could never be stolen, not
-that its a valueble target. but after comepleting the full secuirty of the project i personaly learn wayy more about how internet secruity works than i would
-have learn reading 10+ books on it.
-
-
-# Conculsetion 
-
-this project IS messy but ive learned so much valueble information about how a full stack app works. if you want a quick peek at the project check out the 
-controller dir to find the most important classes and structor. 
+# Conclusion
+This project is solid, and I have learned so much valuable information about how a full-stack app works. If you want a quick peek at the project, check out the controller directory to find the most important classes and structure.
