@@ -11,4 +11,3 @@ For user security, I implemented JWT tokens to authenticate requests. Although t
 This project is solid and has provided me with invaluable insights into the workings of a full-stack application. If you want a quick peek at the project, check out the controller directory to find the most important classes and structure.
 
 PS. I did build a fully functional front end but, I decided that it wasnt good enogh to be posted on here so feel free to ask me for it at kohutekkevin7@gmail.com
-
